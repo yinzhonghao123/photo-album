@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no"/>
+		<title>work</title>
+		<style type="text/css">
+			*{
+				margin: 0;
+				padding: 0;
+			}
+			html,body{
+				height: 100%;
+				overflow: hidden;
+			}
+			
+			#head,#b_header{
+				height: 2rem;
+				font: .8rem/2rem "宋体";
+				background: rgba(0,0,0,.8);
+				color: #FFFFFF;
+				text-align: center;
+			}
+			#wrap{
+				position: absolute;
+				left: 0;
+				top: 2rem;
+				bottom: 0;
+				width: 100%;
+				overflow: hidden;
+			}
+			#list{
+				list-style: none;
+				/*清浮动*/
+				overflow: hidden;
+			}
+			#list li{
+				float: left;
+				width: 7rem;
+				height: 7rem;
+				margin: .5rem;
+				background: url(img/loadingImg.gif) no-repeat center;
+			}
+			#list li img{
+				display: block;
+				width: 100%;
+				border-radius:12px ;
+				opacity: 0;
+				transition: 1s opacity;
+			}
+			#content{
+				position: relative;
+			}
+			#footer{
+				position: absolute;
+				bottom:-4rem ;
+				width: 100%;
+				height: 4rem;
+				font: .8rem/4rem "宋体";
+				text-align: center;
+			}
+			#scrollBar{
+				position: absolute;
+				top: 0;
+				right: 0;
+				width: 4px;
+				height: 100%;
+				background: #aaa;
+				opacity: 0;
+				transition: 1s opacity;
+			}
+			
+			#bigImg{
+				position: absolute;
+				left: 0;
+				top: 0;
+				width: 100%;
+				height: 100%;
+				background: #eee;
+				transform: scale(0);
+				transition: .5s transform;
+			}
+			#bigImg a{
+				text-decoration: none;
+				color: #FFFFFF;
+				float: right;
+				margin-right: 10px;
+				margin-left: -10px;
+			}
+			
+			#bigImg img{
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				width: 12rem;
+				height: 12rem;
+				margin:-6rem 0 0 -6rem ;
+				background: #aaa;
+			}
+		</style>
+	</head>
+	<body>
+		<header id="head">三国女孩</header>
+		<section id="wrap">
+			<section id="content">
+				<ul id="list">
+					<!--<li>
+						<img src="img/1.jpg"/>
+					</li>
+					<li>
+						<img src="img/2.jpg"/>
+					</li>-->
+				</ul>
+				<footer id="footer">上滑加载更多</footer>
+			</section>
+			<div id="scrollBar"></div>
+		</section>
+		<section id="bigImg">
+			<div id="b_header">
+				"大图预览"<a href="javascript:;">×</a>
+			</div>
+			<img src="" />
+		</section>
+	</body>
+	<script src="js/tools.js"></script>
+	<script src="js/new_transform.js"></script>
+	<script type="text/javascript">
+		document.addEventListener("touchstart",function(ev){
+//			var e= ev||event;
+			ev.preventDefault();
+		});
+		
+		(function(){
+			var width = document.documentElement.clientWidth/16;
+			var styleNode = document.createElement("style");
+			styleNode.innerHTML = "html{font-size:"+width+"px!important}";
+			document.head.appendChild(styleNode);
+		})()
+		
+		
+		window.onload=function(){
+			var bar = document.querySelector("#scrollBar");
+			var content =document.querySelector("#content");
+			var wrap = document.querySelector("#wrap");
+			var list = document.querySelector("#list");
+			var head = document.querySelector("#head");
+			var lis = list.getElementsByTagName("li");
+			var footer = document.querySelector("#footer");
+			footerH = footer.offsetHeight;
+			css(footer,"scale",0);
+			//存储img的url
+			var urlArr=[];
+			for(var i=0;i<40;i++){
+				urlArr.push("img/"+((i%18)+1)+".jpg");
+			}
+			//默认加载两屏
+			var length =12;
+			var start = 0;
+			var minT = head.offsetHeight;
+			var maxT = document.documentElement.clientHeight;
+			//判断滑屏是否在底部
+			var isBottom =false;
+			//让大兄弟只出来一次
+			var onlyOne =true;
+			
+			
+			
+			
+			//大图预览
+			var bigImg = document.querySelector("#bigImg");
+			var close = document.querySelector("#bigImg a");
+			var img = document.querySelector("#bigImg img");
+			close.addEventListener("touchend",function(){
+				css(bigImg,"scale",0);
+				css(img,"scale",1);
+				css(img,"rotate",0);
+			})
+			
+			
+			//旋转 缩放
+			gestureImg();
+			function gestureImg(){
+				var start = {
+					scale:0,
+					rotate:0
+				};
+				
+				var callBack={
+					//gesturestart事件的回调
+					start:function(){
+						start.rotate=css(img,"rotate");
+						start.scale=css(img,"scale");
+					},
+					//gesturechange事件的回调
+					change:function(ev){
+						css(img,"rotate",start.rotate+ev.rotation);
+						css(img,"scale",start.scale*ev.scale);
+					},
+				}
+				
+				damu.gesTure(img,callBack);
+			}
+			
+//			css(bigImg,"scale",0);
+			
+			
+			createLi();
+			//在没有超出的情况下能够滑动的最大距离
+			var maxScroll =content.offsetHeight - wrap.clientHeight;
+			//创建li
+			function createLi(){
+				//加载最后一波的后一次滑屏
+				if(onlyOne&&start>=urlArr.length){
+					
+					onlyOne=false;
+					
+					footer.innerHTML="无更多图片";
+					setTimeout(function(){
+						content.style.transition="1s";
+						css(content,"translateY",-maxScroll);
+						css(footer,"scale",0);
+						footer.innerHTML="";
+					},2000)
+					
+					return;
+				}
+				
+				var end = start+length;
+				end = end>urlArr.length?urlArr.length:end;
+				for(var i=start;i<end;i++){
+					var li = document.createElement("li");
+					li.src=urlArr[i];
+					li.isload=false;
+					
+					li.addEventListener("touchstart",function(){
+						this.hasMoved=false;
+					})
+					
+					li.addEventListener("touchmove",function(){
+						if(!this.hasMoved){
+							this.hasMoved=true;
+						}
+					})
+					
+					li.addEventListener("touchend",function(){
+						if(this.hasMoved){
+							return;
+						}
+						//改变基点
+						var left = this.getBoundingClientRect().left;
+						var top = this.getBoundingClientRect().top;
+						bigImg.style.transformOrigin=left+"px "+top+"px";
+						
+						img.src=this.src;
+						css(bigImg,"scale",1);
+					})
+					
+					list.appendChild(li);
+				}
+				start = end;
+				
+				//lazyload
+				lazyload();
+				css(footer,"scale",0);
+			}
+			
+			//懒加载
+			function lazyload(){
+				for(var i=0;i<lis.length;i++){
+					var top = lis[i].getBoundingClientRect().top;
+					if(!lis[i].isload&&minT<top&&top<maxT){
+						//创建img
+						createImg(lis[i]);
+						lis[i].isload=true;
+					}
+				}
+			}
+			
+			/*
+			 * transtion没有办法获取到每一帧的状态（不能实现即点即停）
+			 
+			 	transtion 在元素没有完全渲染完的情况下是不会被触发的
+			 * */
+			function createImg(li){
+				var img = new Image();
+				img.src=li.src;
+//				1.img有没有渲染完?==>>有
+//				2.img有没有被成功创建?==>>有
+				img.onload=function(){
+					img.style.opacity="1";
+				}
+//				setTimeout(function(){
+//					img.style.opacity="1";
+//				},10);
+				li.appendChild(img);
+			}
+			
+			
+			//滑屏
+			var callback={
+				//防抖动的回调
+				shake:function(){
+					bar.style.opacity=0;
+				},
+				//touchstart的回调
+				start:function(){
+					var scale2 = wrap.clientHeight/content.offsetHeight;
+					bar.style.height = scale2*wrap.clientHeight+"px";
+					bar.style.opacity="1";
+					
+					//console.log(this);//callback
+					if(!onlyOne){
+						return;
+					}
+					content.style.transition="none";
+					
+					maxScroll =content.offsetHeight - wrap.clientHeight;
+					//判断是否在底部
+					var elScroll =css(content,"translateY");
+					if(Math.abs(elScroll)>=maxScroll){
+						isBottom=true;
+					}
+				},
+				//touchmove 以及 tween中move的回调
+				move:function(){
+					var scale2 = wrap.clientHeight/content.offsetHeight;
+					var dis = -scale2*css(content,"translateY");
+					css(bar,"translateY",dis);
+					
+					if(!onlyOne){
+						return;
+					}
+					if(isBottom){
+						//让footer显示出来（比例慢慢变大）
+						var scale =(Math.abs(css(content,"translateY")) - maxScroll )/footerH;
+						scale = Math.abs(scale)>1?1:Math.abs(scale);
+						css(footer,"scale",scale);
+					}
+					lazyload();
+				},
+				//touchend的回调
+				end:function(){
+					if(!onlyOne){
+						return;
+					}
+					/*
+					 * 加载li
+					 * 
+					 * 1.content必须在底部进行滑屏
+					 * 2.footer必须被拉满
+					 
+					 * */
+					if(isBottom&&((Math.abs(css(content,"translateY")) - maxScroll )>footerH)){
+						bar.style.opacity=0;
+						//实现原地加载，让Tween停止工作
+						clearInterval(wrap.cleartime);
+						createLi();
+//						css(footer,"scale",0);
+					}
+					
+					//重置操作
+					isBottom=false;
+					
+				},
+				//Tween结束的回调
+				over:function(){
+					bar.style.opacity=0;
+				}
+			}
+			$.drag(wrap,callback);		
+		}
+		
+		
+	</script>
+</html>
